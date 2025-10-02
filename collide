@@ -19,7 +19,7 @@ task.spawn(function()
             local blocked = {
                 NoSkill=true,DribbleVelocityCD=true,JustUsedSkill=true,
                 NoCharge=true,KickCD=true,OverchargeActive=true,
-                CameraLocked=true,TakingPen=true,FOVOverride=true
+                TakingPen=true,FOVOverride=true,sprintSpeed=true
             }
             local function attachBypass()
                 task.spawn(function()
