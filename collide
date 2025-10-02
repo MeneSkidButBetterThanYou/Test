@@ -1,0 +1,150 @@
+_G.StaminaLock = true
+_G.BallHighlight = true
+_G.BallTrajectory = true
+_G.BypassStun = true
+
+--// SERVICES
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+task.spawn(function()
+    pcall(function()
+        if _G.BypassStun then
+            local blocked = {
+                NoSkill=true,DribbleVelocityCD=true,JustUsedSkill=true,
+                NoCharge=true,KickCD=true,OverchargeActive=true,
+                CameraLocked=true,TakingPen=true,FOVOverride=true
+            }
+            local function attachBypass()
+                task.spawn(function()
+                    pcall(function()
+                        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                        local status = char:WaitForChild("Status",5)
+                        if not status then return end
+                        status.ChildAdded:Connect(function(c)
+                            if blocked[c.Name] then task.defer(function() pcall(function() c:Destroy() end) end) end
+                        end)
+                        RunService.RenderStepped:Connect(function()
+                            for _, inst in ipairs(status:GetChildren()) do
+                                if blocked[inst.Name] then pcall(function() inst:Destroy() end) end
+                            end
+                        end)
+                    end)
+                end)
+            end
+            attachBypass()
+            LocalPlayer.CharacterAdded:Connect(function() 
+                task.wait(0.5) 
+                attachBypass() 
+            end)
+        end
+    end)
+end)
+
+
+--// BALL HIGHLIGHT
+task.spawn(function()
+    pcall(function()
+        if _G.BallHighlight then
+            task.spawn(function()
+                local highlight
+                while _G.BallHighlight do
+                    pcall(function()
+                        local ball = Workspace:FindFirstChild("Temp") and Workspace.Temp:FindFirstChild("Ball")
+                        if ball then
+                            if highlight then highlight:Destroy() end
+                            highlight = Instance.new("Highlight")
+                            highlight.FillColor = Color3.fromRGB(46,123,255)
+                            highlight.OutlineColor = Color3.fromRGB(46,123,255)
+                            highlight.FillTransparency = 0.7
+                            highlight.OutlineTransparency = 0.5
+                            highlight.Adornee = ball:IsA("BasePart") and ball or ball:FindFirstChildWhichIsA("BasePart",true)
+                            highlight.Parent = CoreGui
+                        else
+                            if highlight then highlight:Destroy() highlight=nil end
+                        end
+                    end)
+                    task.wait(0.1)
+                end
+                if highlight then highlight:Destroy() end
+            end)
+        end
+    end)
+end)
+
+--// BALL TRAJECTORY
+task.spawn(function()
+    pcall(function()
+        if _G.BallTrajectory then
+            task.spawn(function()
+                local GRAVITY,FLOOR_Y,STEP,MAX_T,AIR_RES = Workspace.Gravity,9.6,0.04,3,0.995
+                local dots, marker, ball, lastPos = {},nil,nil,nil
+                local function reset()
+                    for _,d in ipairs(dots) do d:Destroy() end
+                    dots = {}
+                    for i=1, math.floor(MAX_T/STEP) do
+                        local dot=Instance.new("Part")
+                        dot.Anchored=true dot.CanCollide=false dot.Size=Vector3.new(0.4,0.4,0.4)
+                        dot.Shape=Enum.PartType.Ball dot.Material=Enum.Material.Neon dot.Color=Color3.fromRGB(102,224,255)
+                        dot.Transparency=1 dot.Parent=Workspace
+                        table.insert(dots,dot)
+                    end
+                end
+                local function mark()
+                    if marker then marker:Destroy() end
+                    marker=Instance.new("Part")
+                    marker.Anchored=true marker.CanCollide=false marker.Size=Vector3.new(3,0.2,3)
+                    marker.Material=Enum.Material.Neon marker.Color=Color3.fromRGB(255,158,0)
+                    marker.Transparency=1 marker.Parent=Workspace
+                end
+                local function predict(pos,vel,t)
+                    return pos+vel*(AIR_RES^t)*t+Vector3.new(0,-0.5*GRAVITY*t*t,0)
+                end
+                reset() mark()
+                RunService.Heartbeat:Connect(function(dt)
+                    pcall(function()
+                        ball = Workspace:FindFirstChild("Temp") and Workspace.Temp:FindFirstChild("Ball")
+                        if not ball then 
+                            for _,d in ipairs(dots)do d.Transparency=1 end 
+                            if marker then marker.Transparency=1 end 
+                            return 
+                        end
+                        local pos,vel = ball.Position,ball.Velocity
+                        lastPos=pos
+                        for i,d in ipairs(dots) do
+                            local t=STEP*i
+                            local p=predict(pos,vel,t)
+                            d.Position=p d.Transparency=0.2+(i/#dots)*0.7
+                        end
+                        if marker then marker.Position=Vector3.new(pos.X,FLOOR_Y,pos.Z) marker.Transparency=0.65 end
+                    end)
+                end)
+            end)
+        end
+    end)
+end)
+
+task.spawn(function()
+    pcall(function()
+        if _G.StaminaLock then
+            task.spawn(function()
+                while true do
+                    pcall(function()
+                        local char=LocalPlayer.Character
+                        if char and char:FindFirstChild("Stats") then
+                            char.Stats.MaxStamina.Value=100
+                            char.Stats.Stamina.Value=100
+                        end
+                    end)
+                    task.wait()
+                end
+            end)
+        end
+    end)
+end)
